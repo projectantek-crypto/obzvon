@@ -1,4 +1,3 @@
-/** @OnlyCurrentDoc */
 /**
  * База статусов для страницы «Обзвон ЕГРЗ».
  * Вставьте этот код в Расширения → Apps Script вашей Google Таблицы,
@@ -6,12 +5,17 @@
  */
 const PASSWORD = 'поменяйте-этот-пароль';
 
+// Адрес вашей Google Таблицы (скопируйте из адресной строки браузера).
+// Нужен, если скрипт создан не через меню таблицы «Расширения → Apps Script».
+const SPREADSHEET_URL = '';
+
 const SHEET = 'Статусы';
 const HEAD = ['ИНН', 'Компания', 'Телефон', 'ЛПР', 'Статус', 'Следующее касание', 'Заметка', 'Обновлено', 'Менеджер', 'История'];
 const TZ = 'Europe/Moscow';
 
 function sheet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SPREADSHEET_URL ? SpreadsheetApp.openByUrl(SPREADSHEET_URL) : SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('Скрипт не видит таблицу: впишите SPREADSHEET_URL в начале кода');
   let sh = ss.getSheetByName(SHEET);
   if (!sh) {
     sh = ss.insertSheet(SHEET);
@@ -28,6 +32,10 @@ function json_(obj) {
 }
 
 function doGet(e) {
+  try { return doGet_(e); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); }
+}
+
+function doGet_(e) {
   if ((e.parameter.key || '') !== PASSWORD) return json_({ ok: false, error: 'bad_key' });
   const sh = sheet_();
   const last = sh.getLastRow();
@@ -36,6 +44,10 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  try { return doPost_(e); } catch (err) { return json_({ ok: false, error: String(err && err.message || err) }); }
+}
+
+function doPost_(e) {
   let b;
   try { b = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'bad_request' }); }
   if ((b.key || '') !== PASSWORD) return json_({ ok: false, error: 'bad_key' });
