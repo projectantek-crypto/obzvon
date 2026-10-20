@@ -385,12 +385,15 @@ function renderAll(){renderTabs();renderSide();renderList();if(state.open)render
 /* ---------- drawer ---------- */
 async function ensureObj(){if(OBJ)return OBJ;if(!objLoading)objLoading=fetch("objects.json").then(r=>r.json()).then(j=>OBJ=j).catch(()=>OBJ={});return objLoading}
 function openDrawer(inn){state.open=inn;$("drawer").hidden=false;$("scrim").hidden=false;renderDrawer();document.querySelectorAll(".row.sel-row").forEach(r=>r.classList.remove("sel-row"));const r=document.querySelector(`.row[data-inn="${inn}"]`);if(r)r.classList.add("sel-row");ensureObj().then(()=>{if(state.open===inn)renderObjects(inn)})}
-function closeDrawer(){state.open=null;$("drawer").hidden=true;$("scrim").hidden=true;document.querySelectorAll(".row.sel-row").forEach(r=>r.classList.remove("sel-row"))}
+document.addEventListener("input",e=>{if(e.target.id==="dNote"&&state.open){const inn=state.open;drafts[inn]=e.target.value;clearTimeout(draftT);draftT=setTimeout(()=>flushDraft(inn),2500)}});
+document.addEventListener("focusout",e=>{if(e.target.id==="dNote"&&state.open){const inn=state.open;clearTimeout(draftT);draftT=setTimeout(()=>flushDraft(inn),400)}});
+function flushDraft(inn){clearTimeout(draftT);if(drafts[inn]===undefined)return;const cur=(CRM[inn]&&CRM[inn].note)||"";if(drafts[inn]===cur){delete drafts[inn];return}writeCrm(inn,{note:drafts[inn]}).then(()=>{const el=$("dSaved");if(el&&state.open===inn)toast("Заметка сохранена")},()=>{})}
+function closeDrawer(){if(state.open)flushDraft(state.open);state.open=null;$("drawer").hidden=true;$("scrim").hidden=true;document.querySelectorAll(".row.sel-row").forEach(r=>r.classList.remove("sel-row"))}
 function renderDrawer(){
   const o=BYINN[state.open]; if(!o)return; const c=CRM[o.i]||{}; const s=stOf(o.i); const l=splitLpr(o.l);
   const active=document.activeElement; const keepNote=active&&active.id==="dNote";
   $("dName").textContent=o.n;
-  const noteVal=keepNote?$("dNote").value:(c.note||"");
+  const noteVal=keepNote?$("dNote").value:(drafts[o.i]!==undefined?drafts[o.i]:(c.note||""));
   $("dBody").innerHTML=`
   <div class="sec"><h3>Контакт</h3>
     ${o.p?`<div class="bigphone"><span class="num">${esc(o.p)}</span><button class="btn" data-copy="${esc(o.p)}">Скопировать</button><a class="btn" href="tel:${esc(o.p.replace(/[^\d+]/g,""))}" style="text-decoration:none">Позвонить</a></div>`:`<div style="color:var(--muted)">Телефона в реестрах СРО нет.</div>`}
@@ -459,18 +462,28 @@ async function loadCrm(){
   }catch(e){showBanner("Нет связи с таблицей статусов. Проверьте интернет — страница попробует снова через 20 секунд.")}
   finally{loadBusy=false}
 }
+const drafts={}, writeChain={}, writeSeq={}; let draftT;
 async function writeCrm(inn,patch,logStatus){
+  if(patch.note===undefined&&drafts[inn]!==undefined){patch={...patch,note:drafts[inn]};clearTimeout(draftT)}
   const o=BYINN[inn]||{};const cur=CRM[inn]||{};const now=Date.now();
   const by=auth.name||"";
   const next={st:cur.st||"new",note:cur.note||"",next:cur.next||"",log:(cur.log||[]).slice(),...patch,at:now,by};
   if(logStatus)next.log=[...next.log,{st:next.st,at:now,by}];
   CRM[inn]=next;pending.add(inn);renderAll();
-  if(!API){try{localStorage.setItem("egrz-local",JSON.stringify(CRM))}catch(e){}pending.delete(inn);return}
+  if(!API){try{localStorage.setItem("egrz-local",JSON.stringify(CRM))}catch(e){}pending.delete(inn);if(drafts[inn]===next.note)delete drafts[inn];return}
+  const seq=(writeSeq[inn]=(writeSeq[inn]||0)+1);
+  const body=JSON.stringify({key:auth.key,inn,company:o.n||"",phone:o.p||"",lpr:o.l||"",status:ST[next.st].t,next:next.next,note:next.note,by});
+  const send=async()=>{const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body});const j=await r.json();if(!j.ok)throw new Error(j.error==="bad_key"?"неверный пароль":(j.error||"ошибка таблицы"));return j};
+  // записи по одной компании уходят строго по очереди, чтобы старая не перезаписала новую
+  const p=(writeChain[inn]||Promise.resolve()).catch(()=>{}).then(send);
+  writeChain[inn]=p;
   try{
-    const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:auth.key,inn,company:o.n||"",phone:o.p||"",lpr:o.l||"",status:ST[next.st].t,next:next.next,note:next.note,by})});
-    const j=await r.json();if(!j.ok)throw new Error(j.error==="bad_key"?"неверный пароль":(j.error||"ошибка таблицы"));
-    pending.delete(inn);if(j.row){CRM[inn]=fromRow(j.row);renderAll()}
-  }catch(e){pending.delete(inn);CRM[inn]=cur;renderAll();toast("Не сохранилось: "+(e.message||"нет связи")+". Попробуйте ещё раз.");throw e}
+    const j=await p;
+    if(drafts[inn]===next.note)delete drafts[inn];
+    if(seq===writeSeq[inn]){pending.delete(inn);if(j.row){CRM[inn]=fromRow(j.row);renderAll()}}
+  }catch(e){
+    if(seq===writeSeq[inn]){pending.delete(inn);CRM[inn]=cur;renderAll()}
+    toast("Не сохранилось: "+(e.message||"нет связи")+". Попробуйте ещё раз.");throw e}
 }
 function showLogin(err){
   $("login").hidden=false;$("lErr").textContent=err||"";$("lName").value=auth.name||"";setTimeout(()=>$((auth.name?"lKey":"lName")).focus(),50);
