@@ -260,13 +260,13 @@ const STATUSES=[
   {k:"new",t:"Новый"},
   {k:"noanswer",t:"Не дозвонились"},
   {k:"callback",t:"Перезвонить"},
-  {k:"talk",t:"Был разговор"},
-  {k:"kp",t:"КП отправлено"},
-  {k:"meet",t:"Встреча / переговоры"},
+  {k:"kp",t:"Отправлено на почту"},
   {k:"client",t:"Клиент"},
   {k:"refuse",t:"Отказ"},
-  {k:"bad",t:"Нецелевой / неверный номер"}
+  {k:"bad",t:"Не квал"}
 ];
+// старые названия статусов, которые уже записаны в таблице
+const LEGACY={"КП отправлено":"kp","Нецелевой / неверный номер":"bad","Нецелевой":"bad","Был разговор":"callback","Встреча / переговоры":"callback"};
 const ST=Object.fromEntries(STATUSES.map(s=>[s.k,s]));
 const TABS=[
   {k:"З",t:"Застройщики",cnt:"cz"},
@@ -439,7 +439,7 @@ function renderObjects(inn){
 const API=(window.CONFIG&&window.CONFIG.API_URL||"").trim();
 let auth={};try{auth=JSON.parse(localStorage.getItem("egrz-auth")||"{}")}catch(e){}
 const pending=new Set();
-const LBL2K=Object.fromEntries(STATUSES.map(s=>[s.t,s.k]));
+const LBL2K={...LEGACY,...Object.fromEntries(STATUSES.map(s=>[s.t,s.k]))};
 function parseAt(s){if(!s)return 0;const t=Date.parse(String(s).replace(" ","T"));return isNaN(t)?0:t}
 function fromRow(r){ // [ИНН,Компания,Телефон,ЛПР,Статус,Касание,Заметка,Обновлено,Менеджер,История]
   const log=String(r[9]||"").split("\n").filter(Boolean).map(l=>{const p=l.split(" · ");return{at:parseAt(p[0]),by:p[1]||"",st:LBL2K[p[2]]||"new"}});
