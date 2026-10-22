@@ -17,7 +17,7 @@ body{margin:0}
   --accent:#0f6a73; --accent-ink:#ffffff; --accent-soft:#dcefef;
   --warn:#a86200; --bad:#b3362c; --good:#1f7a43;
   --st-new:#8a979f; --st-noanswer:#c08410; --st-callback:#2f6fd0; --st-talk:#0f8a8f; --st-kp:#7a4bc4;
-  --st-meet:#3f4fb8; --st-client:#1f8a4c; --st-refuse:#c43d32; --st-bad:#5b6770;
+  --st-meet:#3f4fb8; --st-client:#1f8a4c; --st-lead:#3f4fb8; --st-refuse:#c43d32; --st-bad:#5b6770;
   --sans:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --r:6px;
@@ -28,7 +28,7 @@ body{margin:0}
   --accent:#4fb8bf; --accent-ink:#06282b; --accent-soft:#163a3d;
   --warn:#e2a23c; --bad:#ef7368; --good:#5cc489;
   --st-new:#7d8a92; --st-noanswer:#e0a43a; --st-callback:#6aa0ff; --st-talk:#45c1c6; --st-kp:#ad86f0;
-  --st-meet:#8a96f2; --st-client:#5cc489; --st-refuse:#ef7368; --st-bad:#8d9aa3;
+  --st-meet:#8a96f2; --st-client:#5cc489; --st-lead:#8a96f2; --st-refuse:#ef7368; --st-bad:#8d9aa3;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1519; --surface:#161e23; --sunken:#11181c; --line:#2a353c; --line-soft:#222c32;
@@ -36,7 +36,7 @@ body{margin:0}
   --accent:#4fb8bf; --accent-ink:#06282b; --accent-soft:#163a3d;
   --warn:#e2a23c; --bad:#ef7368; --good:#5cc489;
   --st-new:#7d8a92; --st-noanswer:#e0a43a; --st-callback:#6aa0ff; --st-talk:#45c1c6; --st-kp:#ad86f0;
-  --st-meet:#8a96f2; --st-client:#5cc489; --st-refuse:#ef7368; --st-bad:#8d9aa3;
+  --st-meet:#8a96f2; --st-client:#5cc489; --st-lead:#8a96f2; --st-refuse:#ef7368; --st-bad:#8d9aa3;
   color-scheme:dark}
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -261,6 +261,7 @@ const STATUSES=[
   {k:"noanswer",t:"Не дозвонились"},
   {k:"callback",t:"Перезвонить"},
   {k:"kp",t:"Отправлено на почту"},
+  {k:"lead",t:"Квал лид"},
   {k:"client",t:"Клиент"},
   {k:"refuse",t:"Отказ"},
   {k:"bad",t:"Не квал"}
